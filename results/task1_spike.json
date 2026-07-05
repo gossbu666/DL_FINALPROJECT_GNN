@@ -1,0 +1,14 @@
+{
+  "dataset": "cora",
+  "split": "nettack",
+  "ptb_rate": 0.05,
+  "device": "cpu",
+  "seed": 15,
+  "n_perturbations": 253,
+  "clean_acc": 0.8405432595573441,
+  "robust_acc_gcn": 0.7771629778672032,
+  "robust_acc_jaccard": 0.7937625754527163,
+  "gap": 0.06338028169014087,
+  "jaccard_recovery": 0.016599597585513104,
+  "seconds": 2253.1908853054047
+}

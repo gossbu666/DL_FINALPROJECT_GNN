@@ -1,0 +1,18 @@
+.venv/
+__pycache__/
+*.pyc
+data/
+results/*.pt
+*.egg-info/
+.ipynb_checkpoints/
+
+# LaTeX build artifacts (keep .pdf, .tex, .bib, .sty)
+*.aux
+*.log
+*.out
+*.bbl
+*.blg
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.toc

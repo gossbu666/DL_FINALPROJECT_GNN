@@ -1,0 +1,224 @@
+\documentclass[10pt]{article}
+
+% ---- NeurIPS-like single-column layout (self-contained; no external conference .sty) ----
+\usepackage[letterpaper,left=1.5in,right=1.5in,top=1in,bottom=1in]{geometry}
+\usepackage{mathptmx}            % Times text + math (NeurIPS look)
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage[numbers]{natbib}
+\usepackage{url}
+\usepackage[hidelinks]{hyperref}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.5em}
+
+% NeurIPS-style abstract block: centered heading between two rules, narrower margins
+\renewenvironment{abstract}{%
+  \vspace{0.5em}\begin{center}\rule{\textwidth}{0.5pt}\end{center}\vspace{-0.3em}
+  {\centering\textbf{Abstract}\par}\vspace{0.3em}
+  \begin{quote}\small}{%
+  \end{quote}\vspace{-0.3em}\begin{center}\rule{\textwidth}{0.5pt}\end{center}}
+
+\title{\textbf{Over-Squashing {\itshape vs.} Adversarial Robustness in GNNs:\\
+An ``Add {\itshape vs.} Remove Edge'' Investigation}}
+\author{
+  Supanut Kompayak (st126055) \quad Dechathon Niamsa-Ard (st126235)\\
+  Deep Learning Course Project, Asian Institute of Technology\\
+  \texttt{\{st126055, st126235\}@ait.asia}
+}
+\date{Midway Report --- \today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Graph neural networks (GNNs) suffer from two seemingly unrelated structural problems:
+\emph{over-squashing}, where long-range information is compressed through bottlenecks and lost,
+and \emph{adversarial fragility}, where a few maliciously edited edges flip predictions. Both
+concern how sensitive a node's output is to structural change elsewhere. As a learning project, we
+\emph{investigate} whether methods that mitigate over-squashing also help adversarial robustness,
+through the lens of \textbf{adding vs.\ removing edges}: over-squashing rewiring methods either
+\emph{add} edges (FoSR) or \emph{remove} them (spectral pruning), while adversarial attacks add
+edges and adversarial defenses (GCN-Jaccard) remove them. On Cora node classification we compare a
+vanilla GCN, an add-based rewiring (FoSR), a remove-based spectral pruning (Jamadandi ProxyDelete),
+and a purpose-built defense (GCN-Jaccard) under the Metattack poisoning attack, reporting clean
+accuracy, robust accuracy, and the robustness gap, plus a Jacobian-based over-squashing probe. We
+report only real, reproducible numbers; negative results are acceptable. Preliminary work establishes
+a GCN/Cora baseline of $80.30 \pm 0.47\%$ and validates the full attack--defense pipeline end-to-end.
+\end{abstract}
+
+\section{Introduction}
+Message-passing GNNs propagate information hop-by-hop along edges. Two known failure modes both stem
+from how information flows through graph structure. \textbf{Over-squashing}~\citep{alon2021bottleneck,
+topping2022understanding,digiovanni2023oversquashing}: reaching distant nodes requires many layers, but
+the exponentially growing long-range signal is squeezed through structural bottlenecks into a
+fixed-size vector and lost --- the output is \emph{not sensitive enough} to distant signal.
+\textbf{Adversarial fragility}~\citep{zugner2019metattack,zugner2018nettack}: an attacker adds or
+removes a few edges and message passing pulls in the bad signal, flipping the prediction --- the output
+is \emph{too sensitive} to malicious structural change. Both are about the sensitivity of a node's
+output to structural change elsewhere; this conceptual bridge is what we investigate, not a claim we
+prove.
+
+The sharper framing we use is \textbf{add vs.\ remove edge}. Over-squashing rewiring mostly
+\emph{adds} edges to raise the spectral gap and relieve bottlenecks (FoSR~\citep{karhadkar2023fosr},
+SDRF~\citep{topping2022understanding}); adversarial attacks typically \emph{add} edges between
+dissimilar nodes; adversarial defenses \emph{remove} suspicious edges (GCN-Jaccard~\citep{wu2019jaccard},
+Pro-GNN~\citep{jin2020prognn}). Thus adding edges to fix over-squashing might \emph{hurt} robustness
+(more edges to exploit), while a \emph{remove}-based over-squashing method --- spectral
+pruning~\citep{jamadandi2024spectral} --- might transfer to robustness because it removes edges like a
+defense does. ``Add vs.\ remove: which helps robustness, and why?'' is the spine of this project.
+
+\section{Research Questions}
+\begin{itemize}
+  \item \textbf{RQ2 (lead).} Do over-squashing mitigations (add-based FoSR vs.\ remove-based spectral
+  pruning) improve adversarial robustness relative to (a) an undefended GCN and (b) a purpose-built
+  defense (GCN-Jaccard), and at what cost to clean accuracy?
+  \item \textbf{RQ1 (secondary).} Does structural perturbation measurably worsen an over-squashing
+  measure? Is there a relationship between perturbation strength and long-range information loss?
+  \item \textbf{RQ3 (stretch).} Can a single measure (Jacobian sensitivity) capture both
+  over-squashing severity and adversarial fragility on the same scale?
+\end{itemize}
+
+\section{Data}
+Cora is the workhorse; everything else is optional. All statistics are confirmed at load time.
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{@{}llll@{}}
+\toprule
+\textbf{Dataset} & \textbf{Task} & \textbf{Size} & \textbf{Role} \\
+\midrule
+Cora (Planetoid)     & node clf.            & 2{,}708 nodes / 5{,}278 undir.\ edges / 7 cls / 1{,}433 feat & \textbf{primary} \\
+Citeseer (Planetoid) & node clf.            & 3{,}327 / 4{,}552 / 6 / 3{,}703                              & 2nd setting \\
+Peptides-func (LRGB) & graph clf.\ (AP)     & 15{,}535 graphs, $\sim$150 avg nodes                          & stretch \\
+ZINC (subset)        & graph reg.\ (MAE)    & 12{,}000 graphs, $\sim$23 avg nodes                          & stretch \\
+\bottomrule
+\end{tabular}
+\caption{Datasets. Cora is the primary node-level and standard adversarial-attack testbed.
+Long-range graph-classification sets (LRGB, ZINC) are stretch goals for the over-squashing probe.}
+\end{table}
+
+\section{Methods and Approach}
+\paragraph{Backbone.} GCN~\citep{kipf2017gcn} is the primary backbone (2 layers, hidden $16$, dropout
+$0.5$). GAT and GraphSAGE are stretch.
+
+\paragraph{The method table (the design).} Each method occupies a position on the add/remove axis:
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{@{}llll@{}}
+\toprule
+\textbf{Method} & \textbf{Targets} & \textbf{Edge op} & \textbf{Role} \\
+\midrule
+GCN (vanilla)               & ---                 & none   & baseline \\
+FoSR                        & over-squashing      & \textbf{add}    & the ``add'' arm \\
+Spectral pruning (ProxyDelete) & over-squashing   & \textbf{remove} & the ``remove'' arm \\
+GCN-Jaccard                 & adversarial defense & \textbf{remove} & purpose-built defense reference \\
+DropEdge                    & regularization      & remove (random) & random-removal sanity baseline \\
+\bottomrule
+\end{tabular}
+\caption{What each comparison teaches: \emph{FoSR vs.\ ProxyDelete} isolates the add/remove
+\emph{direction} among over-squashing fixes; \emph{ProxyDelete vs.\ GCN-Jaccard} asks whether
+spectral-criterion removal matches similarity-criterion removal; \emph{all vs.\ vanilla} asks whether
+any of this helps robustness, and at what clean-accuracy cost.}
+\end{table}
+
+\paragraph{Attack and defense.} The attack is Metattack~\citep{zugner2019metattack}, a global
+meta-learning poisoning attack and the standard testbed for robust-accuracy benchmarks, at perturbation
+rates $\{0.05, 0.10\}$ (with $0.20$ as stretch). The defense reference is
+GCN-Jaccard~\citep{wu2019jaccard}, which prunes edges between dissimilar nodes. We use
+DeepRobust~\citep{li2021deeprobust} for both. The remove-based over-squashing arm is the ProxyDelete
+spectral pruning of \citet{jamadandi2024spectral}, which deletes edges to maximize the spectral gap;
+the add-based arm is FoSR~\citep{karhadkar2023fosr}, adapted from graph- to node-classification.
+
+\paragraph{Pipeline order (the operational spine).} Metattack is a \emph{poisoning} attack, so the
+order of operations is part of the design, not an implementation detail:
+\[
+\text{clean graph} \xrightarrow{\text{Metattack}} \text{poisoned } G'
+\xrightarrow{\;M\;} G'' \xrightarrow{\text{train GCN}} \text{eval},
+\quad M \in \{\text{none, FoSR, ProxyDelete, GCN-Jaccard}\}.
+\]
+The attack precedes training by definition of poisoning; the method $M$ is applied to the received
+(possibly poisoned) graph before training, mirroring deployment and matching how DeepRobust evaluates
+GCN-Jaccard. Because a method changes the graph even with no attack, its clean-accuracy cost must be
+measured separately, giving four graph conditions per method: clean; clean${+}M$; poisoned; and
+poisoned${+}M$. The headline table reports, per method, clean accuracy, robust accuracy at ptb
+$\{0.05, 0.10\}$, and the robustness gap (clean $-$ robust).
+
+\paragraph{Metrics.} (i) \emph{Clean accuracy}; (ii) \emph{robust accuracy} under Metattack;
+(iii) \emph{robustness gap} $=$ clean $-$ robust (headline); and (iv) an \emph{over-squashing measure}
+based on Jacobian sensitivity $\partial \mathbf{h}_v / \partial \mathbf{x}_u$ for distant node pairs
+$(u,v)$~\citep{digiovanni2023oversquashing}, computed via autograd (scoped to a few far pairs first,
+then expanded). The focus of the investigation is RQ2; RQ1 follows almost for free once the probe
+exists.
+
+\section{Discussion}
+The grid directly answers RQ2. The attacker mostly \emph{adds} dissimilar edges; GCN-Jaccard
+\emph{removes} exactly those (which is why removal defends); FoSR \emph{adds} more edges (does adding
+hurt robustness?); ProxyDelete \emph{removes} edges by a spectral criterion (does over-squashing-motivated
+removal happen to remove attacker edges too?). \emph{FoSR vs.\ ProxyDelete} isolates the effect of edge
+direction among methods with the same over-squashing goal, while \emph{ProxyDelete vs.\ GCN-Jaccard}
+isolates whether the removal \emph{criterion} matters --- i.e.\ whether generic spectral removal suffices
+or removal must target the attack. Our working hypothesis is that add-based rewiring is neutral-to-harmful
+for robustness while remove-based pruning partially transfers, but a negative or weak result is an
+acceptable and informative outcome. The Jacobian probe links the two phenomena: if perturbation increases
+long-range sensitivity (RQ1) and the same measure tracks fragility (RQ3), the conceptual bridge is
+empirically supported on one scale.
+
+\paragraph{Caveat.} We use a non-adaptive attacker: Metattack attacks a vanilla GCN surrogate and is
+unaware of the defense applied afterward (the DeepRobust standard). This flatters defenses relative to an
+adaptive attacker; we note it as a limitation and treat adaptive attacks as a stretch goal.
+
+\section{Summary of Progress}
+\paragraph{Done.} (1) A reproducible GCN/Cora baseline of $\mathbf{80.30 \pm 0.47\%}$ test accuracy
+(5 seeds, CPU), confirming Cora statistics at load. (2) The remove-arm code (Jamadandi ProxyDelete) was
+verified to exist and be usable (\texttt{RelationalML/SpectralPruningBraess}; pure NetworkX/SciPy,
+CPU-friendly, runs on Cora node classification), upgrading the remove-arm from a random fallback to a
+principled spectral method. (3) The DeepRobust attack--defense pipeline was installed (working around a
+broken \texttt{gensim} pin via \texttt{--no-deps} plus prebuilt PyG extension wheels) and validated
+end-to-end on CPU; Table~\ref{tab:spike} reports the smoke-test numbers.
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{@{}lccc@{}}
+\toprule
+\textbf{Setting (Cora, Metattack ptb $=0.05$)} & \textbf{Clean} & \textbf{Robust (poisoned)} & \textbf{Gap} \\
+\midrule
+GCN (Planetoid public split, 5 seeds)  & $80.30 \pm 0.47$ & --- & --- \\
+GCN (DeepRobust attack split)          & $84.05$ & $77.72$ & $6.34$ \\
+GCN-Jaccard (DeepRobust attack split)  & ---     & $79.38$ & --- \\
+\bottomrule
+\end{tabular}
+\caption{Preliminary numbers (\%). Top row: the clean baseline on the standard Planetoid split. Bottom
+rows: the Task~1 end-to-end pipeline smoke test on the attack split used by robustness papers (single
+seed, untuned) --- enough to confirm the path works; the full tuned grid is Task~2.}
+\label{tab:spike}
+\end{table}
+
+\paragraph{To do.} Build the core pipeline and headline table over $\{$clean, ptb $0.05$, ptb $0.10\}$
+(Task~2); adapt FoSR to node tasks (Task~3); implement the scoped Jacobian probe (Task~4); add Citeseer
+and integrate ProxyDelete (Task~5); prepare slides and the progress summary (Task~6).
+
+\paragraph{Obstacles and concerns.} (i) DeepRobust ($0.2.9$, 2023) is brittle against current
+PyTorch/NumPy --- resolved by a clean dependency install and by running on CPU for these small graphs,
+sidestepping Blackwell-GPU (sm\_120) issues. (ii) FoSR's reference code targets graph classification and
+must be adapted to node tasks. (iii) The Jacobian probe is the hardest component and is scoped small
+first. (iv) The timeline is tight, so Cora is prioritized and all other datasets and the adaptive-attack
+setting are explicitly stretch goals.
+
+\paragraph{Reproducibility.} All numbers in this report are produced by fixed-seed scripts (the
+GCN/Cora baseline and the DeepRobust attack--defense pipeline spike) and are reproducible end-to-end;
+we report only real, measured results, and the codebase is organized so that each table can be
+regenerated from a single command.
+
+\bibliographystyle{plainnat}
+\bibliography{references}
+
+\end{document}

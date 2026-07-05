@@ -1,0 +1,10 @@
+# Over-Squashing x Adversarial Robustness in GNNs
+# Env note: torch is reused from the system install (2.9.1+cu128) via a
+# --system-site-packages venv; compute runs on CPU for the small Planetoid graphs
+# (device='cpu') to sidestep Blackwell sm_120 / DeepRobust-CUDA issues.
+
+torch>=2.7            # already provided by system install (cu128)
+torch_geometric>=2.6  # installed: 2.8.0 (pure-python GCNConv, no torch_scatter needed)
+
+# Task 1+ (DeepRobust spike) -- add in a controlled way so it does NOT downgrade torch:
+# deeprobust==0.2.9

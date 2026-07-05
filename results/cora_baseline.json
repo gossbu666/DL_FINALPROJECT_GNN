@@ -1,0 +1,34 @@
+{
+  "timestamp_utc": "2026-06-28T13:25:27.735943+00:00",
+  "dataset": "Cora",
+  "model": "gcn",
+  "config": {
+    "hidden": 16,
+    "dropout": 0.5,
+    "epochs": 200,
+    "lr": 0.01,
+    "weight_decay": 0.0005,
+    "runs": 5,
+    "seed": 42,
+    "device": "cpu"
+  },
+  "dataset_stats": {
+    "num_nodes": 2708,
+    "num_edges": 10556,
+    "num_undirected_edges": 5278,
+    "num_features": 1433,
+    "num_classes": 7,
+    "train_nodes": 140,
+    "val_nodes": 500,
+    "test_nodes": 1000
+  },
+  "test_acc_mean": 0.803,
+  "test_acc_std": 0.004690415759823434,
+  "test_acc_per_seed": [
+    0.806,
+    0.802,
+    0.795,
+    0.803,
+    0.809
+  ]
+}
