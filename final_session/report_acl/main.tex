@@ -375,21 +375,21 @@ budget of $643$ edges (matching Jaccard's similarity-threshold count) instead of
 Table~\ref{tab:headline}. Robust accuracy is essentially unchanged: the criterion, not the budget, drives
 the defense.
 
-\begin{table*}[t]
+\begin{table}[h]
 \centering\small
 \begin{tabular}{@{}lccc@{}}
 \toprule
-\textbf{Method (budget $643$)} & \textbf{Clean} & \textbf{Robust@0.05} & \textbf{Robust@0.10} \\
+\textbf{Method} ($643$) & \textbf{Clean} & \textbf{Rob@.05} & \textbf{Rob@.10} \\
 \midrule
 GCN (vanilla)        & $83.50$ & $77.05$ & $71.85$ \\
-GCN-Jaccard ($\sim$643) & $82.16$ & $\mathbf{78.84}$ & $\mathbf{74.45}$ \\
-ProxyDelete (remove) & $82.03$ & $76.89$ & $71.28$ \\
+GCN-Jaccard          & $82.16$ & $\mathbf{78.84}$ & $\mathbf{74.45}$ \\
+ProxyDelete (rm.)    & $82.03$ & $76.89$ & $71.28$ \\
 DropEdge (random)    & $81.66$ & $76.48$ & $70.88$ \\
 FoSR (add)           & $82.26$ & $76.32$ & $69.89$ \\
 \bottomrule
 \end{tabular}
 \caption{Budget-matched check (Cora, test acc \%, 3 seeds). Even at Jaccard's $\sim$643-edge budget,
 spectral/random/add arms stay at the vanilla-GCN level; only Jaccard defends.}
-\end{table*}
+\end{table}
 
 \end{document}
