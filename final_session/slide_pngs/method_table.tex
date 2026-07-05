@@ -1,0 +1,21 @@
+\documentclass[border=14pt]{standalone}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage[scaled]{helvet}
+\renewcommand\familydefault{\sfdefault}
+\begin{document}
+\small
+\begin{tabular}{@{}llll@{}}
+\multicolumn{4}{c}{\normalsize\textbf{Methods on the add/remove axis}}\\[5pt]
+\toprule
+\textbf{Method} & \textbf{Targets} & \textbf{Edge op} & \textbf{Role}\\
+\midrule
+GCN (vanilla)   & ---            & none            & baseline\\
+FoSR            & over-squashing & \textbf{add}    & the ``add'' arm\\
+ProxyDelete     & over-squashing & \textbf{remove} & the ``remove'' arm\\
+GCN-Jaccard     & defense        & remove          & defense (similarity)\\
+GCN-SVD         & defense        & low-rank        & defense (low-rank)\\
+DropEdge        & regularization & random          & sanity baseline\\
+\bottomrule
+\end{tabular}
+\end{document}
