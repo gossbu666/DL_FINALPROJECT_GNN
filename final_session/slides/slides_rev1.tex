@@ -39,6 +39,20 @@
   \emph{removing} for over-squashing may \emph{transfer} to robustness (removes like a defense).
 \end{frame}
 
+\begin{frame}{Research questions}
+  \begin{itemize}
+    \item[\textbf{RQ2}] \textbf{(main)} Do over-squashing fixes (add-based FoSR, remove-based spectral
+      pruning) improve adversarial robustness --- vs.\ an undefended GCN and vs.\ a purpose-built defense
+      --- and at what cost to clean accuracy?
+    \item[\textbf{RQ1}] Does the attack worsen the over-squashing \emph{itself}? (perturbation vs.\
+      long-range information loss)
+    \item[\textbf{RQ3}] \emph{(stretch)} Can a single measure (Jacobian sensitivity) capture \emph{both}
+      over-squashing and adversarial fragility?
+  \end{itemize}
+  \vfill
+  {\footnotesize We lead with \textbf{RQ2}; RQ1 comes almost for free from the same probe; RQ3 is a stretch.}
+\end{frame}
+
 \begin{frame}{Methods (the design)}
   \centering
   \begin{tabular}{@{}llll@{}}
