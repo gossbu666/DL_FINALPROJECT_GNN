@@ -1,0 +1,46 @@
+\documentclass[border=14pt]{standalone}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage[scaled]{helvet}
+\renewcommand\familydefault{\sfdefault}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+
+\begin{document}
+\small
+\begin{tabular}{@{}L{3.5cm} L{2.7cm} L{3.8cm} L{4.9cm}@{}}
+\multicolumn{4}{c}{\normalsize\textbf{Ablation summary: which ``knob'' decides adversarial robustness?}}\\[5pt]
+\toprule
+\textbf{Factor we varied} & \textbf{Held fixed} & \textbf{Result} & \textbf{What we learned}\\
+\midrule
+Add vs.\ remove\newline {\footnotesize(FoSR vs.\ ProxyDelete)}
+  & over-squashing goal
+  & both fail to defend
+  & \textbf{direction is not what matters}\\
+\addlinespace
+Edit criterion\newline {\footnotesize(spectral / similarity / low-rank)}
+  & that we edit edges at all
+  & only attack-aware editing defends (Jaccard, SVD)
+  & \textbf{the criterion is the key}\\
+\addlinespace
+Edge budget\newline {\footnotesize(253 vs.\ 643 edges)}
+  & the method
+  & spectral removal still fails
+  & it is not a budget artifact\\
+\addlinespace
+Dataset\newline {\footnotesize(Cora vs.\ Citeseer)}
+  & the method
+  & same ranking of methods
+  & the finding generalizes\\
+\addlinespace
+Attacker\newline {\footnotesize(non-adaptive vs.\ adaptive)}
+  & the defense
+  & evades the filter but turns weak
+  & potency \& detectability are coupled\\
+\addlinespace
+Over-squashing measure\newline {\footnotesize(clean vs.\ poisoned graph)}
+  & the model
+  & decay rate unchanged
+  & over-squashing \& fragility are decoupled\\
+\bottomrule
+\end{tabular}
+\end{document}
