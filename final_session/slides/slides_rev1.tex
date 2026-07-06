@@ -53,6 +53,20 @@
   {\footnotesize We lead with \textbf{RQ2}; RQ1 comes almost for free from the same probe; RQ3 is a stretch.}
 \end{frame}
 
+\begin{frame}{Related work \& positioning}
+  \begin{itemize}
+    \item \textbf{The building blocks already exist} --- over-squashing rewiring (FoSR, spectral pruning),
+      the attack (Metattack), the defense (GCN-Jaccard). We introduce \emph{no} new method.
+    \item \textbf{The link is understudied} --- to our knowledge, rewiring/over-squashing surveys do not
+      discuss adversarial robustness, and the robustness literature does not engage over-squashing.
+    \item[$\Rightarrow$] \textbf{Our contribution:} a controlled \emph{add-vs-remove} study connecting the
+      two lines of work, reporting only real, reproducible numbers.
+  \end{itemize}
+  \vfill
+  {\footnotesize Closest related: a rewiring method (GraphTorque) improves robustness --- but via edge
+  \emph{removal}, consistent with our finding.}
+\end{frame}
+
 \begin{frame}{Methods (the design)}
   \centering
   \begin{tabular}{@{}llll@{}}
